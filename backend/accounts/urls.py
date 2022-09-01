@@ -12,6 +12,6 @@ accounts_urlpatterns = [
     re_path(
         r"^verify-email/(?P<key>[-:\w]+)/$",
         TemplateView.as_view(),
-        name="account_confirm_email"
+        name="account_confirm_email",
     ),
 ]
