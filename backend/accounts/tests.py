@@ -1,6 +1,8 @@
 from django.core import mail
 from rest_framework import status
 from rest_framework.test import APITestCase
+from django.contrib.auth.models import User
+from allauth.account.admin import EmailAddress
 
 
 class AccountsTestCase(APITestCase):
@@ -9,6 +11,24 @@ class AccountsTestCase(APITestCase):
     register_url = "/api/auth/register/"
     verify_email_url = "/api/auth/register/verify-email/"
     login_url = "/api/auth/login/"
+    user_details_url = "/api/auth/user/"
+
+    def setUp(self):
+        """The `setUp` method is called before every unit test"""
+        self.alice_params = {
+            "username": "alice",
+            "email": "alice@example.com",
+            "password": "aliceSecret",
+        }
+        # create a user and a corresponding verified email
+        alice = User.objects.create_user(
+            username=self.alice_params["username"],
+            email=self.alice_params["email"],
+            password=self.alice_params["password"],
+        )
+        EmailAddress.objects.create(
+            user=alice, email=alice.email, verified=True, primary=True
+        )
 
     def test_registration(self):
         """
@@ -59,3 +79,26 @@ class AccountsTestCase(APITestCase):
         response = self.client.post(self.login_url, login_data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue("key" in response.json())
+
+    def test_get_user_details(self):
+        """
+        Test that the correct user details are obtained upon logging in and
+        going to (GETting) the user details page.
+        """
+        # log in to get token
+        response = self.client.post(self.login_url, self.alice_params)
+        token = response.json()["key"]
+
+        # prepare headers with the token - it has to be exactly the string
+        # "Token " followed by the token key
+        headers = {"HTTP_AUTHORIZATION": "Token " + token}
+
+        # send GET request to get user details
+        response = self.client.get(self.user_details_url, **headers)
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        for cred in ["username", "email", "profile"]:
+            self.assertTrue(cred in data)
+        self.assertTrue("plan" in data["profile"])
+        self.assertTrue("free" in data["profile"]["plan"])
