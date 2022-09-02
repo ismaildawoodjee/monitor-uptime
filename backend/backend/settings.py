@@ -61,6 +61,10 @@ AUTHENTICATION_BACKENDS = (
     "allauth.account.auth_backends.AuthenticationBackend",
 )
 
+REST_AUTH_SERIALIZERS = {
+    "USER_DETAILS_SERIALIZER": "accounts.serializers.UserSerializer"
+}
+
 SITE_ID = 1
 
 ACCOUNT_EMAIL_REQUIRED = True
